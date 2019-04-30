@@ -4,7 +4,9 @@ export interface ValueConstructor {
   readonly type: string;
 }
 
-export type Loop<S, E> = [S, E?];
+export type AnyEffect = ValueConstructor;
+
+export type Loop<S> = [S, AnyEffect?];
 export type Reducer<S, A> = (prevState: S, action: A) => S;
-export type LoopReducer<S, A, E = never> = (prevState: S, action: A) => Loop<S, E>;
-export type Epic<E, A> = (effect$: Observable<E>) => Observable<A>;
+export type LoopReducer<S, A> = (prevState: S, action: A) => Loop<S>;
+export type Epic<A> = (effect$: Observable<AnyEffect>) => Observable<A>;

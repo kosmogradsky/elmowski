@@ -1,9 +1,9 @@
-import { ValueConstructor, Epic } from '../types'
+import { AnyEffect, Epic } from '../types'
 import { LocationDescriptor, History } from 'history';
 import { ofType, combineEpics } from './helpers';
 import { tap, ignoreElements } from 'rxjs/operators';
 
-export class PushUrl implements ValueConstructor {
+export class PushUrl implements AnyEffect {
   readonly type = 'History/PushUrl';
 
   constructor(
@@ -11,7 +11,7 @@ export class PushUrl implements ValueConstructor {
   ) {}
 }
 
-export class ReplaceUrl implements ValueConstructor {
+export class ReplaceUrl implements AnyEffect {
   readonly type = 'History/ReplaceUrl';
 
   constructor(
@@ -19,19 +19,17 @@ export class ReplaceUrl implements ValueConstructor {
   ) {}
 }
 
-export type Effect = PushUrl | ReplaceUrl;
-
-export const createEpic = (history: History): Epic<Effect, never> => {
-  const pushEpic: Epic<Effect, never> = effect$ => effect$.pipe(
-    ofType<Effect, PushUrl>('History/PushUrl'),
+export const createEpic = (history: History): Epic<never> => {
+  const pushEpic: Epic<never> = effect$ => effect$.pipe(
+    ofType<PushUrl>('History/PushUrl'),
     tap(({ location }) => {
       history.push(location as any);
     }),
     ignoreElements()
   );
 
-  const replaceEpic: Epic<Effect, never> = effect$ => effect$.pipe(
-    ofType<Effect, ReplaceUrl>('History/ReplaceUrl'),
+  const replaceEpic: Epic<never> = effect$ => effect$.pipe(
+    ofType<ReplaceUrl>('History/ReplaceUrl'),
     tap(({ location }) => {
       history.replace(location as any);
     }),
