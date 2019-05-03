@@ -11,7 +11,7 @@ export type LoopReducer<S, A> = (prevState: S, action: A) => Loop<S>;
 export type Epic<A> = (effect$: Observable<ValueConstructor>) => Observable<A>;
 
 const batchType = 'Core/Batch'
-const noneType = 'Core/None'
+const noEffType = 'Core/NoEff'
 
 export class Batch implements ValueConstructor {
   readonly type = batchType
@@ -21,14 +21,14 @@ export class Batch implements ValueConstructor {
   ) {}
 }
 
-class None implements ValueConstructor {
-  readonly type = noneType
+class NoEff implements ValueConstructor {
+  readonly type = noEffType
 }
 
-export const NONE = new None();
+export const NO_EFF = new NoEff();
 
 const isBatch = (effect: ValueConstructor): effect is Batch => effect.type === batchType
-const isNone = (effect: ValueConstructor): effect is None => effect.type === noneType
+const isNoEff = (effect: ValueConstructor): effect is NoEff => effect.type === noEffType
 
 export const combineEpics = <A>(...epics: Epic<A>[]): Epic<A> => effect$ => merge(
   ...epics.map(epic => epic(effect$))
@@ -64,7 +64,7 @@ export const createStore = <S, A>(
   const effect$ = loop$.pipe(
     map(([_, effect]) => effect),
     mergeMap(effect => isBatch(effect) ? effect.effects : [effect]),
-    filter(effect => !isNone(effect))
+    filter(effect => !isNoEff(effect))
   );
   const epicSubscription = epic(effect$).subscribe();
 

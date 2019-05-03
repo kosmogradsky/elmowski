@@ -1,32 +1,32 @@
-import { History, Location, LocationDescriptor } from "history";
+import { History, Location } from "history";
 import { CreateStore, ValueConstructor, Epic, ofType, combineEpics } from "..";
 import { tap, ignoreElements } from "rxjs/operators";
 
-export class PushUrl implements ValueConstructor {
-  readonly type = 'History/PushUrl';
+export class Push implements ValueConstructor {
+  readonly type = 'History/Push';
 
   constructor(
-    readonly location: LocationDescriptor
+    readonly location: Location
   ) {}
 }
 
-export class ReplaceUrl implements ValueConstructor {
-  readonly type = 'History/ReplaceUrl';
+export class Replace implements ValueConstructor {
+  readonly type = 'History/Replace';
 
   constructor(
-    readonly location: LocationDescriptor
+    readonly location: Location
   ) {}
 }
 
 export class UrlChanged implements ValueConstructor {
-  readonly type = 'History/UrlChanged'
+  readonly type = 'UrlChanged'
 
   constructor(readonly location: Location) {}
 }
 
 const createEpic = (history: History): Epic<never> => {
   const pushEpic: Epic<never> = effect$ => effect$.pipe(
-    ofType<PushUrl>('History/PushUrl'),
+    ofType<Push>('History/Push'),
     tap(({ location }) => {
       history.push(location as any);
     }),
@@ -34,7 +34,7 @@ const createEpic = (history: History): Epic<never> => {
   );
 
   const replaceEpic: Epic<never> = effect$ => effect$.pipe(
-    ofType<ReplaceUrl>('History/ReplaceUrl'),
+    ofType<Replace>('History/Replace'),
     tap(({ location }) => {
       history.replace(location as any);
     }),
