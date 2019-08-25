@@ -10,7 +10,8 @@
   },
   "peerDependencies": {
     "history": "^4.9.0",
-    "rxjs": "^6.5.1"
+    "rxjs": "^6.5.1",
+    "redux": "^4.0.4"
   },
   "devDependencies": {
     "@babel/core": "^7.4.4",
@@ -20,6 +21,7 @@
     "babel-jest": "^24.7.1",
     "history": "^4.9.0",
     "jest": "^24.7.1",
+    "redux": "^4.0.4",
     "rxjs": "^6.5.1",
     "typescript": "^3.4.5"
   }
