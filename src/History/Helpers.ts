@@ -1,6 +1,6 @@
 import * as H from "history";
 
-export interface HistoryLocation<S = H.LocationState> {
+export interface Location<S = H.LocationState> {
   paths: string[];
   search: H.Search;
   state: S;
@@ -16,15 +16,19 @@ export interface LocationDescriptorObject<S = H.LocationState> {
   key?: H.LocationKey;
 }
 
+export type LocationDescriptor<S = H.LocationState> =
+  | H.Path
+  | LocationDescriptorObject<S>;
+
 export type LocationListener<S = H.LocationState> = (
-  location: HistoryLocation<S>,
+  location: Location<S>,
   action: H.Action
 ) => void;
 
 export interface History<S = H.LocationState> {
   length: number;
   action: H.Action;
-  getLocation(): HistoryLocation<S>;
+  getLocation(): Location<S>;
   push(location: LocationDescriptorObject<S>): void;
   replace(location: LocationDescriptorObject<S>): void;
   go(n: number): void;
@@ -34,7 +38,7 @@ export interface History<S = H.LocationState> {
   createHref(location: LocationDescriptorObject<S>): H.Href;
 }
 
-const adaptLocationFrom = <S>(location: H.Location<S>): HistoryLocation<S> => {
+const adaptLocationFrom = <S>(location: H.Location<S>): Location<S> => {
   const { pathname, ...rest } = location;
   return {
     paths: pathname.split("/").slice(1),
@@ -45,7 +49,7 @@ const adaptLocationFrom = <S>(location: H.Location<S>): HistoryLocation<S> => {
 export const adaptLocationTo = <S>({
   paths,
   ...rest
-}: HistoryLocation<S>): H.Location<S> => ({
+}: Location<S>): H.Location<S> => ({
   ...rest,
   pathname: "/" + paths.join("/")
 });
@@ -66,7 +70,7 @@ export const createBrowserHistory = <S = H.LocationState>(
   return {
     length: history.length,
     action: history.action,
-    getLocation(): HistoryLocation<S> {
+    getLocation(): Location<S> {
       return adaptLocationFrom(history.location);
     },
     push(location: LocationDescriptorObject<S>) {
@@ -87,4 +91,20 @@ export const createBrowserHistory = <S = H.LocationState>(
       return history.createHref(adaptLocationDescriptorTo(location));
     }
   };
+};
+
+export const createLocation = <S = H.LocationState>(
+  path: LocationDescriptor<S>,
+  state?: S,
+  key?: H.LocationKey,
+  maybeCurrentLocation?: Location<S>
+): Location<S> => {
+  const locationDescriptor =
+    typeof path === "string" ? path : adaptLocationDescriptorTo(path);
+  const currentLocation =
+    maybeCurrentLocation && adaptLocationTo(maybeCurrentLocation);
+
+  return adaptLocationFrom(
+    H.createLocation(locationDescriptor, state, key, currentLocation)
+  );
 };

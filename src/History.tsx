@@ -2,13 +2,13 @@ import * as React from "react";
 import { Action as ReduxAction } from "redux";
 import { ignoreElements, tap } from "rxjs/operators";
 import { combineEpics, ofType, Epic, SilentEff } from "./Loop";
-import { HistoryLocation } from "./History/Helpers";
+import { Location, History, createLocation } from "./History/Helpers";
 
 // ACTIONS
 
 interface RequestLocationChange extends ReduxAction {
   type: "RequestLocationChange";
-  location: HistoryLocation;
+  location: Location;
 }
 
 interface LocationChanged extends ReduxAction {
@@ -23,7 +23,7 @@ export type Action = RequestLocationChange | LocationChanged;
 export class Push extends SilentEff {
   readonly type = "History/Push";
 
-  constructor(readonly location: HistoryLocation) {
+  constructor(readonly location: Location) {
     super();
   }
 }
@@ -31,40 +31,36 @@ export class Push extends SilentEff {
 export class Replace extends SilentEff {
   readonly type = "History/Replace";
 
-  constructor(readonly location: HistoryLocation) {
+  constructor(readonly location: Location) {
     super();
   }
 }
 
 // EPIC
 
-const pushEpic: Epic<ReduxAction, never> = effect$ =>
-  effect$.pipe(
-    ofType<Push>("History/Push"),
-    tap(({ location }) => {
-      history.push(location);
-    }),
-    ignoreElements()
-  );
+export const createEpic = (history: History): Epic<ReduxAction, never> => {
+  const pushEpic: Epic<ReduxAction, never> = effect$ =>
+    effect$.pipe(
+      ofType<Push>("History/Push"),
+      tap(({ location }) => {
+        history.push(location);
+      }),
+      ignoreElements()
+    );
 
-const replaceEpic: Epic<ReduxAction, never> = effect$ =>
-  effect$.pipe(
-    ofType<Replace>("History/Replace"),
-    tap(({ location }) => {
-      history.replace(location);
-    }),
-    ignoreElements()
-  );
+  const replaceEpic: Epic<ReduxAction, never> = effect$ =>
+    effect$.pipe(
+      ofType<Replace>("History/Replace"),
+      tap(({ location }) => {
+        history.replace(location);
+      }),
+      ignoreElements()
+    );
 
-export const epic = combineEpics(pushEpic, replaceEpic);
+  return combineEpics(pushEpic, replaceEpic);
+};
 
 // LINK COMPONENT
-
-export class RequestUrlChange {
-  readonly type = "RequestUrlChange";
-
-  constructor(readonly location: HistoryLocation) {}
-}
 
 const isModifiedEvent = (event: React.MouseEvent<HTMLAnchorElement>) =>
   !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
@@ -72,7 +68,7 @@ const isModifiedEvent = (event: React.MouseEvent<HTMLAnchorElement>) =>
 interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   to: string;
   history: History;
-  onUrlChangeRequest: (location: HistoryLocation) => void;
+  onUrlChangeRequest: (location: Location) => void;
 }
 
 export const Link: React.FunctionComponent<LinkProps> = function Link(
@@ -81,7 +77,7 @@ export const Link: React.FunctionComponent<LinkProps> = function Link(
 ) {
   const handleClick = (
     event: React.MouseEvent<HTMLAnchorElement>,
-    toLocation: HistoryLocation
+    toLocation: Location
   ) => {
     if (props.onClick) {
       props.onClick(event);

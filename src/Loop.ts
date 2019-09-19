@@ -1,11 +1,6 @@
-import {
-  Action,
-  Reducer,
-  AnyAction,
-  StoreEnhancerStoreCreator
-} from "redux";
+import { Action, Reducer, StoreEnhancerStoreCreator } from "redux";
 import { asapScheduler, merge, Observable, Subject } from "rxjs";
-import { filter, observeOn } from "rxjs/operators";
+import { filter, observeOn, startWith } from "rxjs/operators";
 
 export interface Effect<A extends Action> {
   readonly type: string;
@@ -68,23 +63,28 @@ export const ofType = <R extends Effect<Action>>(...keys: Array<R["type"]>) => (
 ): Observable<R> =>
   source.pipe(filter((value): value is R => keys.includes(value.type)));
 
-export const createEnchancer = (epic: Epic<AnyAction>) => (
+export const createEnchancer = (epic: Epic<Action>) => (
   next: StoreEnhancerStoreCreator
 ) => (
-  reducer: LoopReducer<unknown, AnyAction>,
-  initialLoop: Loop<unknown, AnyAction>
-): StoreEnhancerStoreCreator => {
-  const effectSubject = new Subject<Effect<AnyAction>>();
+  reducer: LoopReducer<unknown, Action>,
+  initialLoop: Loop<unknown, Action>
+) => {
+  const effectSubject = new Subject<Effect<Action>>();
+  const [initialModel, initialEffect] = initialLoop;
 
-  epic(effectSubject.pipe(observeOn(asapScheduler))).subscribe(action => {
+  epic(
+    effectSubject.pipe(
+      startWith(initialEffect),
+      observeOn(asapScheduler)
+    )
+  ).subscribe(action => {
     store.dispatch(action);
   });
 
   const liftReducer = (
-    loopReducer: LoopReducer<unknown, AnyAction>
-  ): Reducer<unknown, AnyAction> => (state, action) => {
-    const [model, effect] =
-      state === undefined ? initialLoop : loopReducer(state, action);
+    loopReducer: LoopReducer<unknown, Action>
+  ): Reducer<unknown, Action> => (state, action) => {
+    const [model, effect] = loopReducer(state, action);
 
     toFlatArray(effect).forEach(eff => {
       effectSubject.next(eff);
@@ -93,7 +93,7 @@ export const createEnchancer = (epic: Epic<AnyAction>) => (
     return model;
   };
 
-  const store = next(liftReducer(reducer));
+  const store = next(liftReducer(reducer), initialModel as any);
 
   return store;
 };
