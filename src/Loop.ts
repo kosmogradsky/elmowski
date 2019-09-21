@@ -1,4 +1,10 @@
-import { Action, Reducer, StoreEnhancerStoreCreator } from "redux";
+import {
+  Action,
+  Reducer,
+  StoreEnhancerStoreCreator,
+  StoreEnhancer,
+  Store
+} from "redux";
 import { asapScheduler, merge, Observable, Subject } from "rxjs";
 import { filter, observeOn, startWith } from "rxjs/operators";
 
@@ -53,6 +59,14 @@ export type LoopReducer<S, A extends Action> = (
 export type Epic<I extends Action, O extends Action = I> = (
   effect$: Observable<Effect<I>>
 ) => Observable<O>;
+
+export interface StoreCreator {
+  <S, A extends Action, Ext, StateExt>(
+    reducer: Reducer<S, A>,
+    initialLoop: S,
+    enhancer?: StoreEnhancer<Ext>
+  ): Store<S & StateExt, A> & Ext;
+}
 
 export const combineEpics = <I extends Action, O extends Action = I>(
   ...epics: Array<Epic<I, O>>
