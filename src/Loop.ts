@@ -2,8 +2,8 @@ import {
   Action,
   Reducer,
   StoreEnhancer,
-  Store,
-  createStore as createReduxStore
+  createStore as createReduxStore,
+  Dispatch
 } from "redux";
 import { asapScheduler, merge, Observable, Subject } from "rxjs";
 import { filter, observeOn } from "rxjs/operators";
@@ -69,10 +69,16 @@ export const ofType = <R extends Effect<Action>>(...keys: Array<R["type"]>) => (
 ): Observable<R> =>
   source.pipe(filter((value): value is R => keys.includes(value.type)));
 
+interface Store<S, A extends Action> {
+  dispatch: Dispatch<A>;
+  model$: Observable<S>;
+}
+
 export const createStore = <S, A extends Action, Ext, StateExt>(
   initialLoop: Loop<S, A>,
   reducer: LoopReducer<S, A>,
   epic: Epic<A>,
+  subscriptions: (model$: Observable<S>) => Observable<A>,
   enhancer?: StoreEnhancer<Ext, StateExt>
 ): Store<S & StateExt, A> & Ext => {
   const effectSubject = new Subject<Effect<A>>();
@@ -95,9 +101,21 @@ export const createStore = <S, A extends Action, Ext, StateExt>(
     return model;
   };
 
-  const store = createReduxStore(liftReducer(reducer), enhancer);
+  const store = createReduxStore<S, A, Ext, StateExt>(
+    liftReducer(reducer),
+    enhancer
+  );
 
-  return store;
+  const model$ = new Observable(store[Symbol.observable]().subscribe);
+
+  subscriptions(model$).subscribe(action => {
+    store.dispatch(action);
+  });
+
+  return {
+    dispatch: store.dispatch,
+    model$
+  } as Store<S & StateExt, A> & Ext;
 };
 
 // LOOP HELPERS
