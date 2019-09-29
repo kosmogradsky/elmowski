@@ -1,11 +1,11 @@
 {
   "name": "sudetenwaltz",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT",
   "scripts": {
-    "build": "rm -rf dist && tsc && cp -rf package.json dist",
+    "build": "rm -rf dist && tsc && cp -rf package.json dist && cp -rf README.md dist",
     "test": "jest"
   },
   "peerDependencies": {
@@ -22,5 +22,17 @@
     "redux": "^4.0.4",
     "rxjs": "^6.5.3",
     "typescript": "^3.6.3"
-  }
+  },
+  "keywords": [
+    "rxjs",
+    "redux",
+    "elm",
+    "effect",
+    "epic",
+    "subscription",
+    "async",
+    "observable",
+    "state",
+    "cmd"
+  ]
 }

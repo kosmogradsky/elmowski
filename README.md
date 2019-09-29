@@ -12,6 +12,6 @@ return [nextState, someEffect];
 
 All effects are then passed to the epics which execute non-pure functions. Epic is the third argument to the `createStore` function.
 
-# Subscriptions
+## Subscriptions
 
 Subscriptions is a function that accepts `model$` observable and returns an observable of actions. It's the fourth argument to the `createStore` function.
