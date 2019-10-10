@@ -69,14 +69,18 @@ const toFlatArray = <A extends Action>(effect: Effect<A>): Array<Effect<A>> => {
 };
 
 export type Loop<S, A extends Action> = [S, Effect<A>];
-export type LoopReducer<SI, A extends Action, SO = SI> = (
-  prevState: SI,
-  action: A
-) => Loop<SO, A>;
-export type TickReducer<SI, A extends Action, SO = SI> = (
-  prevState: SI,
-  action: A | Tick
-) => Loop<SO, A>;
+export type LoopReducer<
+  SInput,
+  AInput extends Action,
+  SOutput = SInput,
+  AOutput extends Action = AInput
+> = (prevState: SInput, action: AInput) => Loop<SOutput, AOutput>;
+export type TickReducer<
+  SInput,
+  AInput extends Action,
+  SOutput = SInput,
+  AOutput extends Action = AInput
+> = (prevState: SInput, action: AInput | Tick) => Loop<SOutput, AOutput>;
 
 export type Epic<A extends Action> = (
   effect$: Observable<Effect<A>>
