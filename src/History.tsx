@@ -1,17 +1,22 @@
 import * as React from "react";
-import { Action as ReduxAction } from "redux";
 import { ignoreElements, tap } from "rxjs/operators";
-import { combineEpics, ofType, Epic, SilentEff } from "./Loop";
+import {
+  combineEpics,
+  ofType,
+  Epic,
+  SilentEff,
+  Action as LoopAction
+} from "./Loop";
 import { Location, History, createLocation } from "./History/Helpers";
 
 // ACTIONS
 
-interface RequestLocationChange extends ReduxAction {
+interface RequestLocationChange extends LoopAction {
   type: "RequestLocationChange";
   location: Location;
 }
 
-interface LocationChanged extends ReduxAction {
+interface LocationChanged extends LoopAction {
   type: "LocationChanged";
   location: Location;
 }
@@ -38,8 +43,8 @@ export class Replace extends SilentEff {
 
 // EPIC
 
-export const createEpic = (history: History): Epic<ReduxAction, never> => {
-  const pushEpic: Epic<ReduxAction, never> = effect$ =>
+export const createEpic = (history: History): Epic<never> => {
+  const pushEpic: Epic<never> = effect$ =>
     effect$.pipe(
       ofType<Push>("History/Push"),
       tap(({ location }) => {
@@ -48,7 +53,7 @@ export const createEpic = (history: History): Epic<ReduxAction, never> => {
       ignoreElements()
     );
 
-  const replaceEpic: Epic<ReduxAction, never> = effect$ =>
+  const replaceEpic: Epic<never> = effect$ =>
     effect$.pipe(
       ofType<Replace>("History/Replace"),
       tap(({ location }) => {

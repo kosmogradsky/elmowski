@@ -1,6 +1,13 @@
-import { Action, AnyAction } from "redux";
 import { ignoreElements, map, tap } from "rxjs/operators";
-import { combineEpics, ofType, Effect, Epic, SilentEff } from "./Loop";
+import {
+  combineEpics,
+  ofType,
+  Effect,
+  Epic,
+  SilentEff,
+  Action,
+  AnyAction
+} from "./Loop";
 
 // EFFECTS
 
@@ -27,7 +34,7 @@ export class SetItem extends SilentEff {
 
 // EPIC
 
-const getItemEpic: Epic<Action, AnyAction> = effect$ =>
+const getItemEpic: Epic<AnyAction> = effect$ =>
   effect$.pipe(
     ofType<GetItem<Action>>("LocalStorage/GetItem"),
     map(({ key, onReturn }) => {
@@ -37,7 +44,7 @@ const getItemEpic: Epic<Action, AnyAction> = effect$ =>
     })
   );
 
-const setItemEpic: Epic<Action, never> = effect$ =>
+const setItemEpic: Epic<AnyAction> = effect$ =>
   effect$.pipe(
     ofType<SetItem>("LocalStorage/SetItem"),
     tap(({ key, value }) => {

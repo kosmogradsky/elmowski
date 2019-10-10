@@ -1,12 +1,29 @@
-import {
-  Action,
-  Reducer,
-  StoreEnhancer,
-  createStore as createReduxStore,
-  Dispatch
-} from "redux";
 import { asapScheduler, merge, Observable, Subject } from "rxjs";
-import { filter, observeOn } from "rxjs/operators";
+import {
+  filter,
+  observeOn,
+  scan,
+  startWith,
+  publishBehavior,
+  map
+} from "rxjs/operators";
+import { Frame, frame$ } from "./Frame";
+
+export interface Action {
+  type: string;
+}
+
+export interface AnyAction {
+  type: string;
+  [key: string]: any;
+}
+
+export interface Tick {
+  type: "Tick";
+  frame: Frame;
+}
+
+export type Dispatch<A> = (action: A) => void;
 
 export interface Effect<A extends Action> {
   readonly type: string;
@@ -56,13 +73,18 @@ export type LoopReducer<S, A extends Action> = (
   prevState: S,
   action: A
 ) => Loop<S, A>;
-export type Epic<I extends Action, O extends Action = I> = (
-  effect$: Observable<Effect<I>>
-) => Observable<O>;
+export type TickReducer<S, A extends Action> = (
+  prevState: S,
+  action: A | Tick
+) => Loop<S, A>;
 
-export const combineEpics = <I extends Action, O extends Action = I>(
-  ...epics: Array<Epic<I, O>>
-): Epic<I, O> => effect$ => merge(...epics.map(epic => epic(effect$)));
+export type Epic<A extends Action> = (
+  effect$: Observable<Effect<A>>
+) => Observable<A>;
+
+export const combineEpics = <A extends Action>(
+  ...epics: Epic<A>[]
+): Epic<A> => effect$ => merge(...epics.map(epic => epic(effect$)));
 
 export const ofType = <R extends Effect<Action>>(...keys: Array<R["type"]>) => (
   source: Observable<Effect<Action>>
@@ -74,48 +96,87 @@ interface Store<S, A extends Action> {
   model$: Observable<S>;
 }
 
-export const createStore = <S, A extends Action, Ext, StateExt>(
-  initialLoop: Loop<S, A>,
+export const createAppStore = <S, A extends Action>(
+  [initialState, initialEffect]: Loop<S, A>,
   reducer: LoopReducer<S, A>,
-  epic: Epic<A>,
-  subscriptions: (model$: Observable<S>) => Observable<A>,
-  enhancer?: StoreEnhancer<Ext, StateExt>
-): Store<S & StateExt, A> & Ext => {
+  epic: Epic<A>
+): Store<S, A> => {
+  const actionSubject = new Subject<A>();
   const effectSubject = new Subject<Effect<A>>();
 
-  epic(effectSubject.pipe(observeOn(asapScheduler))).subscribe(action => {
-    store.dispatch(action);
+  epic(
+    effectSubject.pipe(
+      startWith(initialEffect),
+      observeOn(asapScheduler)
+    )
+  ).subscribe(action => {
+    actionSubject.next(action);
   });
 
-  const liftReducer = (loopReducer: LoopReducer<S, A>): Reducer<S, A> => (
-    state,
-    action
-  ) => {
-    const [model, effect] =
-      state === undefined ? initialLoop : loopReducer(state, action);
+  const model$ = actionSubject.pipe(
+    scan((prevState, action) => {
+      const [model, effect] = reducer(prevState, action);
 
+      toFlatArray(effect).forEach(eff => {
+        effectSubject.next(eff);
+      });
+
+      return model;
+    }, initialState),
+    publishBehavior(initialState)
+  );
+
+  return {
+    dispatch: (action: A) => actionSubject.next(action),
+    model$
+  };
+};
+
+export const createGameStore = <S, A extends Action>(
+  [initialState, initialEffect]: Loop<S, A>,
+  reducer: TickReducer<S, A>,
+  epic: Epic<A>
+): Store<S, A> => {
+  const actionSubject = new Subject<A>();
+  const effectSubject = new Subject<Effect<A>>();
+
+  epic(
+    effectSubject.pipe(
+      startWith(initialEffect),
+      observeOn(asapScheduler)
+    )
+  ).subscribe(action => {
+    actionSubject.next(action);
+  });
+
+  let state: S = initialState;
+
+  actionSubject.subscribe(action => {
+    const [model, effect] = reducer(state, action);
+
+    state = model;
     toFlatArray(effect).forEach(eff => {
       effectSubject.next(eff);
     });
-
-    return model;
-  };
-
-  const store = createReduxStore<S, A, Ext, StateExt>(
-    liftReducer(reducer),
-    enhancer
-  );
-
-  const model$ = new Observable(store[Symbol.observable]().subscribe);
-
-  subscriptions(model$).subscribe(action => {
-    store.dispatch(action);
   });
 
+  const model$ = frame$.pipe(
+    map(frame => {
+      const [model, effect] = reducer(state, { type: "Tick", frame });
+
+      state = model;
+      toFlatArray(effect).forEach(eff => {
+        effectSubject.next(eff);
+      });
+
+      return state;
+    })
+  );
+
   return {
-    dispatch: store.dispatch,
+    dispatch: (action: A) => actionSubject.next(action),
     model$
-  } as Store<S & StateExt, A> & Ext;
+  };
 };
 
 // LOOP HELPERS

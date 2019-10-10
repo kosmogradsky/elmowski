@@ -1,7 +1,6 @@
-import { Action, AnyAction } from "redux";
 import { ajax } from "rxjs/ajax";
 import { groupBy, map, mergeMap, switchMap } from "rxjs/operators";
-import { ofType, Effect, Epic } from "./Loop";
+import { ofType, Effect, Epic, Action, AnyAction } from "./Loop";
 
 const defaultTracker = Symbol("defaultTracker");
 
@@ -22,7 +21,7 @@ export class Get<A extends Action> implements Effect<A> {
 }
 
 // EPIC
-export const epic: Epic<Action, AnyAction> = effect$ =>
+export const epic: Epic<AnyAction> = effect$ =>
   effect$.pipe(
     ofType<Get<Action>>("Http/Get"),
     groupBy(action => action.tracker || defaultTracker),
