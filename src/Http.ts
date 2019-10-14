@@ -16,7 +16,7 @@ export class Get<A extends Action> implements Effect<A> {
   ) {}
 
   map<B extends Action>(mapper: (from: A) => B): Get<B> {
-    return new Get(this.url, p => mapper(this.onResponse(p)));
+    return new Get(this.url, p => mapper(this.onResponse(p)), this.tracker);
   }
 }
 
@@ -24,14 +24,17 @@ export class Get<A extends Action> implements Effect<A> {
 export const epic: Epic<AnyAction> = effect$ =>
   effect$.pipe(
     ofType<Get<Action>>("Http/Get"),
-    groupBy(action => action.tracker || defaultTracker),
-    mergeMap(group =>
-      group.pipe(
-        switchMap(action =>
-          ajax
-            .get(action.url)
-            .pipe(map(({ response }) => action.onResponse(response)))
-        )
-      )
-    )
+    groupBy(effect => effect.tracker || defaultTracker),
+    mergeMap(group => {
+      const getRequest$ = (effect: Get<Action>) =>
+        ajax
+          .get(effect.url)
+          .pipe(map(({ response }) => effect.onResponse(response)));
+
+      if (group.key === defaultTracker) {
+        return group.pipe(mergeMap(getRequest$));
+      }
+
+      return group.pipe(switchMap(getRequest$));
+    })
   );
