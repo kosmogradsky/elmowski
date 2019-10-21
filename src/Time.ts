@@ -1,5 +1,13 @@
 import { map, take } from "rxjs/operators";
-import { ofType, Effect, Epic, Action, AnyAction, SilentEff } from "./Loop";
+import {
+  ofType,
+  Effect,
+  Epic,
+  Action,
+  AnyAction,
+  SilentEff,
+  combineEpics
+} from "./Loop";
 import { interval } from "rxjs";
 import { groupByTracker } from "./Utils";
 
@@ -50,7 +58,7 @@ export class CancelInterval extends SilentEff {
 }
 
 // EPIC
-export const timeoutEpic: Epic<AnyAction> = effect$ =>
+const timeoutEpic: Epic<AnyAction> = effect$ =>
   effect$.pipe(
     ofType<SetTimeout<Action>>("Time/SetTimeout"),
     groupByTracker(
@@ -67,7 +75,7 @@ export const timeoutEpic: Epic<AnyAction> = effect$ =>
     )
   );
 
-export const intervalEpic: Epic<AnyAction> = effect$ =>
+const intervalEpic: Epic<AnyAction> = effect$ =>
   effect$.pipe(
     ofType<SetInterval<Action>>("Time/SetInterval"),
     groupByTracker(
@@ -82,3 +90,5 @@ export const intervalEpic: Epic<AnyAction> = effect$ =>
       )
     )
   );
+
+export const epic = combineEpics(timeoutEpic, intervalEpic);
