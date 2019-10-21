@@ -1,8 +1,7 @@
 import { ajax } from "rxjs/ajax";
-import { groupBy, map, mergeMap, switchMap } from "rxjs/operators";
-import { ofType, Effect, Epic, Action, AnyAction } from "./Loop";
-
-const defaultTracker = Symbol("defaultTracker");
+import { map } from "rxjs/operators";
+import { ofType, Effect, Epic, Action, AnyAction, SilentEff } from "./Loop";
+import { groupByTracker } from "./Utils";
 
 // EFFECTS
 
@@ -20,21 +19,26 @@ export class Get<A extends Action> implements Effect<A> {
   }
 }
 
+export class CancelRequest extends SilentEff {
+  readonly type = "Http/CancelRequest";
+
+  constructor(readonly tracker: string) {
+    super();
+  }
+}
+
 // EPIC
 export const epic: Epic<AnyAction> = effect$ =>
   effect$.pipe(
     ofType<Get<Action>>("Http/Get"),
-    groupBy(effect => effect.tracker || defaultTracker),
-    mergeMap(group => {
-      const getRequest$ = (effect: Get<Action>) =>
+    groupByTracker(
+      (effect: Get<Action>) =>
         ajax
           .get(effect.url)
-          .pipe(map(({ response }) => effect.onResponse(response)));
-
-      if (group.key === defaultTracker) {
-        return group.pipe(mergeMap(getRequest$));
-      }
-
-      return group.pipe(switchMap(getRequest$));
-    })
+          .pipe(map(({ response }) => effect.onResponse(response))),
+      effect$.pipe(
+        ofType<CancelRequest>("Http/CancelRequest"),
+        map(effect => effect.tracker)
+      )
+    )
   );
