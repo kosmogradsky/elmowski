@@ -5,7 +5,8 @@ import {
   scan,
   startWith,
   publishBehavior,
-  map
+  map,
+  refCount
 } from "rxjs/operators";
 import { Frame, frame$ } from "./Frame";
 
@@ -127,7 +128,8 @@ export const createAppStore = <S, A extends Action>(
 
       return model;
     }, initialState),
-    publishBehavior(initialState)
+    publishBehavior(initialState),
+    refCount()
   );
 
   return {
