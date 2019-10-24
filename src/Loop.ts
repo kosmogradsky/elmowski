@@ -164,14 +164,14 @@ export const createGameStore = <S, A extends Action>(
     });
   });
 
-  let effectsQueue: Effect<A>[] = [];
-
   const model$ = frame$.pipe(
     map(frame => {
       const [model, effect] = reducer(state, { type: "Tick", frame });
 
       state = model;
-      effectsQueue = toFlatArray(effect);
+      toFlatArray(effect).forEach(eff => {
+        effectSubject.next(eff);
+      });
 
       return state;
     })
@@ -179,11 +179,6 @@ export const createGameStore = <S, A extends Action>(
 
   const dispatch = (action: A) => {
     actionSubject.next(action);
-    const effectsToRun = effectsQueue;
-    effectsQueue = [];
-    effectsToRun.forEach(eff => {
-      effectSubject.next(eff);
-    });
   };
 
   return {
