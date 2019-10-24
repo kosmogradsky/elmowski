@@ -1,4 +1,4 @@
-import { asapScheduler, merge, Observable, Subject } from "rxjs";
+import { merge, Observable, Subject } from "rxjs";
 import {
   filter,
   observeOn,
@@ -109,22 +109,17 @@ export const createAppStore = <S, A extends Action>(
   const actionSubject = new Subject<A>();
   const effectSubject = new Subject<Effect<A>>();
 
-  epic(
-    effectSubject.pipe(
-      startWith(initialEffect),
-      observeOn(asapScheduler)
-    )
-  ).subscribe(action => {
-    actionSubject.next(action);
+  epic(effectSubject.pipe(startWith(initialEffect))).subscribe(action => {
+    dispatch(action);
   });
+
+  let effectsQueue: Effect<A>[] = [];
 
   const model$ = actionSubject.pipe(
     scan((prevState, action) => {
       const [model, effect] = reducer(prevState, action);
 
-      toFlatArray(effect).forEach(eff => {
-        effectSubject.next(eff);
-      });
+      effectsQueue = toFlatArray(effect);
 
       return model;
     }, initialState),
@@ -132,8 +127,17 @@ export const createAppStore = <S, A extends Action>(
     refCount()
   );
 
+  const dispatch = (action: A) => {
+    actionSubject.next(action);
+    const effectsToRun = effectsQueue;
+    effectsQueue = [];
+    effectsToRun.forEach(eff => {
+      effectSubject.next(eff);
+    });
+  };
+
   return {
-    dispatch: (action: A) => actionSubject.next(action),
+    dispatch,
     model$
   };
 };
@@ -146,13 +150,8 @@ export const createGameStore = <S, A extends Action>(
   const actionSubject = new Subject<A>();
   const effectSubject = new Subject<Effect<A>>();
 
-  epic(
-    effectSubject.pipe(
-      startWith(initialEffect),
-      observeOn(asapScheduler)
-    )
-  ).subscribe(action => {
-    actionSubject.next(action);
+  epic(effectSubject.pipe(startWith(initialEffect))).subscribe(action => {
+    dispatch(action);
   });
 
   let state: S = initialState;
@@ -166,21 +165,30 @@ export const createGameStore = <S, A extends Action>(
     });
   });
 
+  let effectsQueue: Effect<A>[] = [];
+
   const model$ = frame$.pipe(
     map(frame => {
       const [model, effect] = reducer(state, { type: "Tick", frame });
 
       state = model;
-      toFlatArray(effect).forEach(eff => {
-        effectSubject.next(eff);
-      });
+      effectsQueue = toFlatArray(effect);
 
       return state;
     })
   );
 
+  const dispatch = (action: A) => {
+    actionSubject.next(action);
+    const effectsToRun = effectsQueue;
+    effectsQueue = [];
+    effectsToRun.forEach(eff => {
+      effectSubject.next(eff);
+    });
+  };
+
   return {
-    dispatch: (action: A) => actionSubject.next(action),
+    dispatch,
     model$
   };
 };
