@@ -1,7 +1,6 @@
 import { merge, Observable, Subject } from "rxjs";
 import {
   filter,
-  observeOn,
   scan,
   startWith,
   publishBehavior,
