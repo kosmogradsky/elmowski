@@ -5,7 +5,7 @@
   "types": "index.d.ts",
   "license": "MIT",
   "scripts": {
-    "build": "rm -rf dist && tsc && cp -rf package.json dist && cp -rf README.md dist",
+    "build": "tsc && rm -rf dist && mkdir dist && cp -a ./src/. ./dist/ && cp -rf package.json dist && cp -rf README.md dist",
     "test": "jest"
   },
   "peerDependencies": {
