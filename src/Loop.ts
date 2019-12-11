@@ -1,11 +1,11 @@
-import { asapScheduler, merge, Observable, Subject } from "rxjs";
+import { merge, Observable, Subject } from "rxjs";
 import {
   filter,
-  observeOn,
   scan,
   startWith,
   publishBehavior,
-  map
+  map,
+  refCount
 } from "rxjs/operators";
 import { Frame, frame$ } from "./Frame";
 
@@ -108,30 +108,35 @@ export const createAppStore = <S, A extends Action>(
   const actionSubject = new Subject<A>();
   const effectSubject = new Subject<Effect<A>>();
 
-  epic(
-    effectSubject.pipe(
-      startWith(initialEffect),
-      observeOn(asapScheduler)
-    )
-  ).subscribe(action => {
-    actionSubject.next(action);
+  epic(effectSubject.pipe(startWith(initialEffect))).subscribe(action => {
+    dispatch(action);
   });
+
+  let effectsQueue: Effect<A>[] = [];
 
   const model$ = actionSubject.pipe(
     scan((prevState, action) => {
       const [model, effect] = reducer(prevState, action);
 
-      toFlatArray(effect).forEach(eff => {
-        effectSubject.next(eff);
-      });
+      effectsQueue = toFlatArray(effect);
 
       return model;
     }, initialState),
-    publishBehavior(initialState)
+    publishBehavior(initialState),
+    refCount()
   );
 
+  const dispatch = (action: A) => {
+    actionSubject.next(action);
+    const effectsToRun = effectsQueue;
+    effectsQueue = [];
+    effectsToRun.forEach(eff => {
+      effectSubject.next(eff);
+    });
+  };
+
   return {
-    dispatch: (action: A) => actionSubject.next(action),
+    dispatch,
     model$
   };
 };
@@ -144,13 +149,8 @@ export const createGameStore = <S, A extends Action>(
   const actionSubject = new Subject<A>();
   const effectSubject = new Subject<Effect<A>>();
 
-  epic(
-    effectSubject.pipe(
-      startWith(initialEffect),
-      observeOn(asapScheduler)
-    )
-  ).subscribe(action => {
-    actionSubject.next(action);
+  epic(effectSubject.pipe(startWith(initialEffect))).subscribe(action => {
+    dispatch(action);
   });
 
   let state: S = initialState;
@@ -177,8 +177,12 @@ export const createGameStore = <S, A extends Action>(
     })
   );
 
+  const dispatch = (action: A) => {
+    actionSubject.next(action);
+  };
+
   return {
-    dispatch: (action: A) => actionSubject.next(action),
+    dispatch,
     model$
   };
 };
