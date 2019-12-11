@@ -1,4 +1,4 @@
-import { Observable, ObservedValueOf } from "rxjs";
+import { Observable } from "rxjs";
 import {
   groupBy,
   mergeMap,
@@ -7,16 +7,13 @@ import {
   filter
 } from "rxjs/operators";
 
-export const groupByTracker = <
-  T extends { tracker?: string },
-  R extends Observable<any>
->(
-  project: (value: T, index: number) => R,
+export const groupByTracker = <T extends { tracker?: string }, R>(
+  project: (value: T, index: number) => Observable<R>,
   cancelTracker$: Observable<string>
 ) => {
   const defaultTracker = Symbol("defaultTracker");
 
-  return (source$: Observable<T>): Observable<ObservedValueOf<R>> =>
+  return (source$: Observable<T>): Observable<R> =>
     source$.pipe(
       groupBy(effect => effect.tracker || defaultTracker),
       mergeMap(group => {
