@@ -12,5 +12,6 @@
     "noUnusedParameters": true,
     "moduleResolution": "node",
     "jsx": "react"
-  }
+  },
+  "exclude": ["dist"]
 }

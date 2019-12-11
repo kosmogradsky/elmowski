@@ -1,5 +1,5 @@
 import { map } from "rxjs/operators";
-import { ofType, Effect, Epic, Action, AnyAction, SilentEff } from "./Loop";
+import { ofType, Effect, Epic, Action, SilentEff } from "./Loop";
 import { groupByTracker } from "./Utils";
 import { Observable } from "rxjs";
 
@@ -48,13 +48,13 @@ export class CancelRequest extends SilentEff {
 }
 
 // EPIC
-export const getEpic = (
+export const getEpic = <A extends Action>(
   fetch: (url: string) => Observable<any>
-): Epic<AnyAction> => effect$ =>
+): Epic<A> => effect$ =>
   effect$.pipe(
-    ofType<Get<Action>>("Http/Get"),
+    ofType<Get<A>>("Http/Get"),
     groupByTracker(
-      (effect: Get<Action>) =>
+      (effect: Get<A>) =>
         fetch(effect.url).pipe(map(response => effect.onResponse(response))),
       effect$.pipe(
         ofType<CancelRequest>("Http/CancelRequest"),
@@ -63,13 +63,13 @@ export const getEpic = (
     )
   );
 
-export const postEpic = (
+export const postEpic = <A extends Action>(
   fetch: (url: string, body: any) => Observable<any>
-): Epic<AnyAction> => effect$ =>
+): Epic<A> => effect$ =>
   effect$.pipe(
-    ofType<Post<Action>>("Http/Post"),
+    ofType<Post<A>>("Http/Post"),
     groupByTracker(
-      (effect: Post<Action>) =>
+      (effect: Post<A>) =>
         fetch(effect.url, effect.body).pipe(
           map(response => effect.onResponse(response))
         ),
