@@ -115,7 +115,7 @@ export const createAppStore = <S, A extends Action>(
   let effectsQueue: Effect<A>[] = [];
 
   const model$ = actionSubject.pipe(
-    scan((prevState, action) => {
+    scan<A, S>((prevState, action) => {
       const [model, effect] = reducer(prevState, action);
 
       effectsQueue = toFlatArray(effect);
